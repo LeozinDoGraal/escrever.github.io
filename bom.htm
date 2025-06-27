@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Editor de Texto</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #e6f0ff;
+      font-family: Arial, sans-serif;
+      padding: 100px 20px 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.escuro {
+      background-color: #1e1e1e;
+      color: white;
+    }
+
+    .toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #f0f0f0;
+      padding: 10px 20px;
+      z-index: 999;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    body.escuro .toolbar {
+      background: #2a2a2a;
+      border-color: #555;
+    }
+
+    button, select {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .editor {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 15px;
+      min-height: 1200px;
+      background-color: white;
+      transition: background 0.3s, color 0.3s, border-color 0.3s;
+    }
+
+    body.escuro .editor {
+      background-color: #2a2a2a;
+      color: white;
+      border-color: #555;
+    }
+
+    .editor font[size="1"] { font-size: 10px; }
+    .editor font[size="2"] { font-size: 13px; }
+    .editor font[size="3"] { font-size: 16px; }
+    .editor font[size="4"] { font-size: 18px; }
+    .editor font[size="5"] { font-size: 24px; }
+    .editor font[size="6"] { font-size: 32px; }
+    .editor font[size="7"] { font-size: 40px; }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <button onclick="document.execCommand('bold')"><b>Negrito</b></button>
+    <button onclick="document.execCommand('italic')"><i>Itálico</i></button>
+    <button onclick="document.execCommand('underline')"><u>Sublinhado</u></button>
+    <button onclick="document.execCommand('undo')">Desfazer</button>
+    <button onclick="document.execCommand('redo')">Refazer</button>
+
+    <select onchange="changeFont(this.value)">
+      <option value="">Fonte</option>
+      <option value="Arial">Arial</option>
+      <option value="Courier New">Courier New</option>
+      <option value="Georgia">Georgia</option>
+      <option value="Times New Roman">Times New Roman</option>
+    </select>
+
+    <select onchange="changeFontSize(this.value)">
+      <option value="">Tamanho</option>
+      <option value="1">10px</option>
+      <option value="2">13px</option>
+      <option value="3">16px (padrão)</option>
+      <option value="4">18px</option>
+      <option value="5">24px</option>
+      <option value="6">32px</option>
+      <option value="7">40px</option>
+    </select>
+
+    <button onclick="inserirTabela()">Inserir Tabela</button>
+    <button onclick="inserirImagem()">Inserir Imagem</button>
+    <button onclick="limparTudo()">Limpar Tudo</button>
+    <button onclick="alternarTema()">Modo Escuro/Claro</button>
+    <button onclick="baixarPDF()">Baixar como PDF</button>
+    <button onclick="marcarTexto()">Destacar</button>
+    <button onclick="removerFormatacao()">Remover Formatação</button>
+    <button onclick="inserirData()">Inserir Data</button>
+  </div>
+
+  <h2>Editor de Texto</h2>
+
+  <div class="editor" contenteditable="true" id="editor">
+    Escreva aqui e selecione o texto para aplicar formatação.
+  </div>
+
+  <p id="contador">Palavras: 0 | Caracteres: 0</p>
+
+  <script>
+
+document.getElementById("editor").addEventListener("paste", function(e) {
+  e.preventDefault();
+
+  // Pega texto puro (sem formatação)
+  const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+
+  // Insere o texto limpo no editor
+  document.execCommand("insertText", false, text);
+});
+
+
+    function changeFont(font) {
+      document.execCommand("fontName", false, font);
+    }
+
+    function changeFontSize(size) {
+      document.execCommand("fontSize", false, size);
+    }
+
+    function inserirTabela() {
+      const linhas = parseInt(prompt("Quantas linhas?"));
+      const colunas = parseInt(prompt("Quantas colunas?"));
+      if (isNaN(linhas) || isNaN(colunas) || linhas < 1 || colunas < 1) {
+        alert("Valores inválidos.");
+        return;
+      }
+      let tabela = "<table style='border-collapse: collapse; width: 100%;'>";
+      for (let i = 0; i < linhas; i++) {
+        tabela += "<tr>";
+        for (let j = 0; j < colunas; j++) {
+          tabela += "<td style='border: 1px solid #000; padding: 5px;'>&nbsp;</td>";
+        }
+        tabela += "</tr>";
+      }
+      tabela += "</table><br>";
+      document.execCommand("insertHTML", false, tabela);
+    }
+
+    function inserirImagem() {
+      const url = prompt("Digite a URL da imagem:");
+      if (url) {
+        document.execCommand("insertImage", false, url);
+      }
+    }
+
+    function limparTudo() {
+      if (confirm("Tem certeza que deseja apagar tudo?")) {
+        document.getElementById("editor").innerHTML = "";
+        localStorage.removeItem("textoSalvo");
+      }
+    }
+
+    function alternarTema() {
+      document.body.classList.toggle("escuro");
+    }
+
+    function atualizarContador() {
+      const texto = document.getElementById("editor").innerText.trim();
+      const palavras = texto === "" ? 0 : texto.split(/\s+/).length;
+      const caracteres = texto.length;
+      document.getElementById("contador").textContent = `Palavras: ${palavras} | Caracteres: ${caracteres}`;
+    }
+
+    function baixarPDF() {
+      const { jsPDF } = window.jspdf;
+      const texto = document.getElementById("editor").innerText;
+      const doc = new jsPDF();
+      doc.setFont("Helvetica");
+      doc.setFontSize(12);
+      doc.text(texto, 10, 10, { maxWidth: 190 });
+      doc.save("meu_texto.pdf");
+    }
+
+    function marcarTexto() {
+      const cor = prompt("Digite uma cor (ex: yellow, lightgreen, #ff0):", "yellow");
+      if (!cor) return;
+      const span = `<span style="background-color: ${cor};">${document.getSelection()}</span>`;
+      document.execCommand("insertHTML", false, span);
+    }
+
+    function removerFormatacao() {
+      document.execCommand("removeFormat", false, null);
+    }
+
+    function inserirData() {
+      const agora = new Date();
+      const formatada = agora.toLocaleDateString("pt-BR") + " " + agora.toLocaleTimeString("pt-BR");
+      document.execCommand("insertText", false, formatada);
+    }
+
+    function downloadTextFile(content, filename) {
+      const blob = new Blob([content], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    window.addEventListener("beforeunload", function (e) {
+      const editor = document.getElementById("editor");
+      const textContent = editor.innerText.trim();
+      if (textContent !== "") {
+        downloadTextFile(textContent, "meu_texto_salvo.txt");
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
+
+    setInterval(() => {
+      const editor = document.getElementById("editor");
+      atualizarContador();
+      localStorage.setItem("textoSalvo", editor.innerHTML);
+    }, 1000);
+
+    window.addEventListener("load", () => {
+      const salvo = localStorage.getItem("textoSalvo");
+      if (salvo) document.getElementById("editor").innerHTML = salvo;
+    });
+  </script>
+
+  <footer style="text-align: center; padding: 20px; background-color: #000000; color: white; margin-top: 40px;">
+    Site feito por Leo, código aberto no GitHub :D
+  </footer>
+
+</body>
+</html>
